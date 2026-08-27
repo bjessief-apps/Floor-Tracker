@@ -1,863 +1,1476 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lumper Pallet Tracker</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background-color: #9ddab9;
-      color: #000000;
-      max-width: 650px;
-      margin: 0 auto;
-      padding: 12px;
-    }
-    h2 { border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-top: 0; }
-    h3 { margin-top: 15px; margin-bottom: 8px; font-size: 16px; color: #343a40; }
-    .hidden { display: none !important; }
-    
-    .error-msg {
-      color: #d9534f;
-      background: #1e1515;
-      padding: 10px;
-      border-radius: 4px;
-      margin-bottom: 10px;
-      display: none;
-      font-weight: bold;
-      border: 1px solid #d9534f;
-    }
-    
-    /* Inputs & Buttons */
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: bold;
-      margin-bottom: 4px;
-      color: #101010;
-    }
-    input[type="text"], input[type="number"] {
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      width: calc(100% - 22px);
-      margin-bottom: 12px;
-    }
-    button {
-      background-color: #0056b3;
-      color: white;
-      border: none;
-      padding: 12px 15px;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    button.success { background-color: #28a745; }
-    button.secondary { background-color: #6c757d; }
-    button.danger { background-color: #dc3545; }
-    button:active { opacity: 0.8; }
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Floor Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0D10;
+  --chrome:#000000;
+  --panel:#15191E;
+  --panel-2:#1D222A;
+  --line:#2A313A;
+  --ink:#F2F5F8;
+  --mute:#8A94A0;
+  --dim:#5C6672;
+  --accent:#FF8A1E;
+  --accent-soft:rgba(255,138,30,.14);
+  --done:#3FB27F;
+  --done-soft:rgba(63,178,127,.12);
+  --danger:#E2542A;
+  --pill:#454E59;
+  --pill-ink:#F4F7FA;
+  --flap-a:#434D59;
+  --flap-b:#343D48;
+  --sticky:#F0DFA0;
+  --sticky-ink:#2E2A18;
+  --l0:#000000;
+  --l1:#0E1115;
+  --l2:#12161B;
+  --l3:#1B2129;
+  --r:8px;
+}
+html[data-theme="light"]{
+  --bg:#E9EBE8;
+  --chrome:#14171B;
+  --panel:#FFFFFF;
+  --panel-2:#F2F4F1;
+  --line:#D2D7D2;
+  --ink:#14181D;
+  --mute:#5F6A75;
+  --dim:#8C949D;
+  --accent:#E8730A;
+  --accent-soft:rgba(232,115,10,.13);
+  --done:#237A52;
+  --done-soft:rgba(35,122,82,.12);
+  --danger:#C2431F;
+  --pill:#767F8A;
+  --pill-ink:#FFFFFF;
+  --flap-a:#FFFFFF;
+  --flap-b:#E7EBE6;
+  --sticky:#F6EBB4;
+  --sticky-ink:#2E2A18;
+  --l0:#14171B;
+  --l1:#DDE1DC;
+  --l2:#F0F2EE;
+  --l3:#FFFFFF;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overscroll-behavior:none}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:14px;line-height:1.35;-webkit-font-smoothing:antialiased;
+}
+button,input,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+input{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:10px;color:var(--ink);width:100%}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.cond{font-family:"Barlow Condensed","IBM Plex Sans",sans-serif}
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
+.screen.on{display:flex}
 
-    /* Top Bar Menu Controls */
-    .top-menu-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      gap: 10px;
-    }
-    .top-menu-bar button {
-      margin-bottom: 0;
-      padding: 8px 12px;
-      font-size: 13px;
-    }
+/* ---------- bar ---------- */
+.bar{
+  display:flex;align-items:center;gap:10px;flex:0 0 auto;
+  padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;
+  background:var(--chrome);border-bottom:1px solid var(--line);
+}
+.bar h1{
+  font-family:"Barlow Condensed",sans-serif;font-size:19px;font-weight:600;margin:0;
+  letter-spacing:.12em;text-transform:uppercase;flex:1;min-width:0;color:#FFFFFF;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.iconbtn{
+  width:36px;height:36px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+}
+.iconbtn svg{width:17px;height:17px;stroke:#FFFFFF;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-    .sku-list {
-      background: white;
-      padding: 12px;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 15px;
-    }
-    .sku-list span {
-      display: inline-block;
-      background: #e9ecef;
-      padding: 4px 8px;
-      border-radius: 4px;
-      margin: 3px;
-      font-weight: bold;
-    }
+/* ---------- setup ---------- */
+.pad{padding:16px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.eyebrow{
+  font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;
+  font-size:11px;color:var(--accent);font-weight:600;margin:0 0 6px;
+}
+.big-title{font-family:"Barlow Condensed",sans-serif;font-size:32px;font-weight:700;line-height:1;margin:0 0 16px}
+.note-line{color:var(--mute);font-size:13px;margin:0 0 18px}
+.rowhead,.doorrow{display:grid;grid-template-columns:64px 1fr 78px 30px;gap:7px}
+.rowhead{margin-bottom:5px}
+.doorrow{align-items:center;margin-bottom:8px}
+.lbl{font-family:"Barlow Condensed",sans-serif;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute)}
+.x{color:var(--mute);font-size:20px;text-align:center;line-height:1}
+.entry{position:sticky;top:0;z-index:2;background:var(--bg);padding-bottom:12px;border-bottom:1px solid var(--line)}
+.plus{
+  background:var(--accent);color:#0B0D10;border-radius:6px;height:40px;
+  font-size:22px;line-height:1;display:grid;place-items:center;
+}
 
-    /* Summary Banner */
-    .summary-banner {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      background: #0056b3;
-      color: white;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-    }
-    .summary-card {
-      text-align: center;
-      background: rgba(255,255,255,0.12);
-      padding: 8px;
-      border-radius: 6px;
-    }
-    .summary-card.full-width {
-      grid-column: span 2;
-    }
-    .summary-card label {
-      display: block;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: rgba(255,255,255,0.9);
-      margin-bottom: 2px;
-    }
-    .summary-card span {
-      font-size: 18px;
-      font-weight: bold;
-      display: block;
-    }
-    .summary-card small {
-      font-size: 11px;
-      font-weight: bold;
-      color: #ffda6a;
-      display: block;
-      margin-top: 2px;
-    }
+.listhead{margin-top:18px;display:flex;align-items:center;gap:8px}
+.cnt{color:var(--mute);font-family:"IBM Plex Mono",monospace;font-size:11px}
+.drow{
+  display:grid;grid-template-columns:52px 1fr auto 26px;gap:10px;align-items:center;
+  padding:12px 2px;border-bottom:1px solid var(--line);
+}
+.drow .dn{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:17px}
+.drow .dt{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drow .dt.none{color:var(--mute);font-style:italic}
+.drow .dp{color:var(--mute);font-size:12px;font-family:"IBM Plex Mono",monospace}
+.emptylist{color:var(--mute);font-size:13px;font-style:italic;padding:14px 2px}
+.ghostbtn{
+  width:100%;padding:11px;border:1px dashed var(--line);border-radius:6px;color:var(--mute);
+  font-family:"Barlow Condensed",sans-serif;letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+}
+.primary{
+  width:100%;padding:14px;background:var(--accent);color:#0B0D10;border-radius:7px;
+  font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+}
 
-    /* Add SKU Bar */
-    .add-sku-bar {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 12px;
-      background: #fff;
-      padding: 8px;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .add-sku-bar input { margin-bottom: 0; width: 65%; font-size: 14px; padding: 8px; }
-    .add-sku-bar button { margin-bottom: 0; width: 35%; padding: 8px; font-size: 14px; }
+.primary[disabled]{opacity:.4}
+.footpad{padding:12px 16px calc(env(safe-area-inset-bottom) + 14px);border-top:1px solid var(--line);background:var(--l0)}
 
-    /* Horizontal Table Layout */
-    .table-container {
-      overflow-x: auto;
-      background: white;
-      border-radius: 6px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 15px;
-    }
-    .tracker-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: center;
-      font-size: 13px;
-    }
-    .tracker-table th {
-      background-color: #343a40;
-      color: white;
-      padding: 8px 4px;
-      font-size: 11px;
-      white-space: nowrap;
-    }
-    .tracker-table td {
-      padding: 8px 4px;
-      border-bottom: 1px solid #eee;
-      vertical-align: middle;
-    }
-    
-    .row-tihi {
-      width: 44px !important;
-      padding: 6px 2px !important;
-      margin-bottom: 0 !important;
-      text-align: center;
-      font-weight: bold;
-      font-size: 13px !important;
-    }
-    .row-loose {
-      width: 48px !important;
-      padding: 6px 2px !important;
-      margin-bottom: 0 !important;
-      text-align: center;
-      font-size: 13px !important;
-    }
-    .btn-pallet {
-      background-color: #0056b3;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 12px;
-      width: auto;
-      margin-bottom: 0;
-      user-select: none;
-      touch-action: manipulation;
-    }
-    .read-only-val {
-      font-weight: bold;
-      font-size: 14px;
-      color: #212529;
-    }
+/* ---------- board ---------- */
+.board{flex:1;display:flex;min-height:0}
+.left{width:52%;display:flex;min-width:0;background:var(--bg);border-right:1px solid var(--line)}
+.doorscroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.doorgrid{display:grid;grid-template-columns:34px 1fr;width:100%;align-content:start}
+.placard{
+  background:var(--panel-2);color:var(--mute);display:flex;align-items:center;justify-content:center;
+  border-bottom:1px solid var(--bg);user-select:none;-webkit-user-select:none;
+}
+.placard span{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:17px;letter-spacing:.02em}
+.placard.working{background:var(--accent);color:#0B0D10}
+.placard.done{background:var(--done-soft);color:var(--done)}
+.placard.empty{background:var(--l1);color:var(--dim)}
 
-    /* Activity Log Box */
-    .log-list {
-      max-height: 250px;
-      overflow-y: auto;
-      font-size: 12px;
-      border: 1px solid #eee;
-      border-radius: 6px;
-      padding: 8px;
-      background: #fafafa;
-      text-align: left;
-    }
-    .log-item {
-      padding: 6px 0;
-      border-bottom: 1px dashed #ddd;
-      color: #495057;
-    }
-    .log-item:last-child { border-bottom: none; }
-    .log-time {
-      font-weight: bold;
-      color: #0056b3;
-      margin-right: 6px;
-    }
+.trailer{
+  position:relative;height:72px;overflow:hidden;margin:4px 5px 4px 4px;padding:7px 8px 7px 15px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+}
+.trailer.slim{height:38px;padding-top:8px}
+.trailer.working{border-color:var(--accent);background:var(--panel-2);box-shadow:inset 3px 0 0 var(--accent)}
+.trailer.done{
+  border-color:var(--done);
+  background:linear-gradient(0deg,var(--done-soft),var(--done-soft)),var(--panel);
+}
+.trailer.empty{background:var(--l1);border-color:var(--line);opacity:.75}
+.prog{position:absolute;left:5px;top:8px;bottom:8px;width:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.prog i{position:absolute;left:0;right:0;bottom:0;border-radius:2px;background:var(--mute);transition:height .25s ease}
+@media (prefers-reduced-motion:reduce){.prog i{transition:none}}
+.trailer.working .prog i{background:var(--accent)}
+.trailer.empty .t-pc{color:var(--dim)}
+.t-top{display:flex;align-items:center;gap:6px}
+.t-pc{flex:1;min-width:0;font-size:12.5px;color:var(--mute);letter-spacing:.03em}
+.fin{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--done)}
+.icbtn{
+  flex:0 0 auto;width:28px;height:26px;border-radius:5px;display:grid;place-items:center;
+  color:var(--mute);font-size:16px;line-height:1;
+}
+.icbtn.has{color:var(--accent)}
+.icbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.icbtn:active{background:var(--panel-2)}
+.chipwrap{position:relative;margin-top:6px}
+.chipwrap::after{
+  content:"";position:absolute;right:0;top:0;bottom:0;width:44px;pointer-events:none;
+  background:linear-gradient(90deg,rgba(0,0,0,0) 0%,var(--panel) 78%);
+  opacity:0;transition:opacity .2s ease;
+}
+.chipwrap.more::after{opacity:1}
+.trailer.working .chipwrap::after{background:linear-gradient(90deg,rgba(0,0,0,0) 0%,var(--panel-2) 78%)}
+@media (prefers-reduced-motion:reduce){.chipwrap::after{transition:none}}
+.chips{
+  display:flex;flex-wrap:nowrap;gap:5px;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;background:var(--pill);color:var(--pill-ink);border:0;border-radius:16px;
+  padding:4px 11px;font-size:13px;font-weight:500;user-select:none;-webkit-user-select:none;
+}
+.chip.sel{background:var(--accent);color:#0B0D10;font-weight:700}
+.t-empty{font-size:12.5px;color:var(--mute);font-style:italic;margin-top:6px}
+.addrow{
+  grid-column:1 / -1;margin:4px 5px 12px 4px;padding:10px;border:1px dashed var(--line);
+  border-radius:var(--r);color:var(--mute);font-family:"Barlow Condensed",sans-serif;
+  letter-spacing:.12em;text-transform:uppercase;font-weight:600;font-size:12px;
+}
 
-    /* Modal / Pop-up Styles */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 15px;
-    }
-    .modal-card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      text-align: center;
-    }
-    .modal-card h3 { margin-top: 0; color: #0056b3; }
-    .modal-card p { font-size: 14px; color: #555; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 15px; }
-    .modal-actions button { margin-bottom: 0; }
+/* right column */
+.right{width:48%;display:flex;flex-direction:column;min-width:0}
+.panelhead{
+  display:flex;align-items:center;gap:6px;padding:8px 9px;background:var(--l2);
+  font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
+  font-size:10.5px;color:var(--mute);font-weight:600;
+}
+.panelhead b{color:var(--ink);font-weight:600}
+.mini{color:var(--mute);font-size:17px;line-height:1;padding:0 4px;flex:0 0 auto}
+.donebar{
+  display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:8px;
+  background:var(--l1);border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+.donebox{
+  width:100%;border:1px solid var(--line);border-radius:7px;background:var(--panel);
+  padding:5px 6px 7px;text-align:center;display:flex;flex-direction:column;align-items:center;
+}
+.donebox:active{border-color:var(--accent)}
+.dlabel{
+  font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--mute);
+}
+.digits{display:flex;gap:4px;justify-content:center;margin-top:5px}
+.dg{
+  position:relative;width:27px;height:38px;border-radius:4px;overflow:hidden;
+  display:grid;place-items:center;
+  background:linear-gradient(180deg,var(--flap-a) 0%,var(--flap-a) 50%,var(--flap-b) 50%,var(--flap-b) 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.22), 0 1px 2px rgba(0,0,0,.28);
+  font-family:"Barlow Condensed","IBM Plex Mono",monospace;
+  font-size:30px;font-weight:700;line-height:1;letter-spacing:.01em;
+}
+.digits.open .dg{color:var(--accent)}
+.donebox .digits:not(.open) .dg{color:var(--done)}
+.dg::after{opacity:.35}
+.dg::after{
+  content:"";position:absolute;left:0;right:0;top:50%;height:1px;
+  background:rgba(0,0,0,.42);
+}
+.logs{flex:1;overflow-y:auto;padding:2px 9px 6px;min-height:0;background:var(--l2);-webkit-overflow-scrolling:touch}
+.log{display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--mute)}
+.log:last-child{border-bottom:0}
+.log .ts{color:var(--mute);opacity:.7;font-size:10px;flex:0 0 auto;padding-top:1px}
+.log.ok{color:var(--done)}
+.log.ok .ts{color:var(--done);opacity:.65}
+.roster{flex:0 0 40%;display:flex;flex-direction:column;border-top:1px solid var(--line);min-height:0;background:var(--l3)}
+.roster.min{flex:0 0 auto}
+.roster.min .rosterbox{display:none}
+.rosterbox{flex:1;overflow-y:auto;padding:7px;background:var(--l3);display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;min-height:0}
+.person{
+  background:var(--pill);color:var(--pill-ink);border:0;border-radius:16px;padding:6px 12px;
+  font-size:13px;font-weight:500;user-select:none;-webkit-user-select:none;
+}
+.person.sel{background:var(--accent);color:#0B0D10;font-weight:700}
+.addbar{display:flex;align-items:center;gap:5px;padding:7px;background:var(--l3)}
+.addbar input{padding:7px 9px;font-size:12.5px;background:var(--l1);border-color:var(--line)}
+.addbtn{
+  flex:0 0 auto;padding:0 13px;background:var(--accent);color:#0B0D10;border-radius:6px;
+  font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:.06em;font-size:14px;
+}
 
-    /* Sign Out Summary Screen */
-    .signout-card {
-      background: white;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 15px;
-    }
-  </style>
- </head>
- <body>
-  <!-- PHASE 1: TRAILER INFO SETUP -->
-  <div id="trailer-section">
-   <h2>Trailer Manifest Setup</h2>
-   <p style="font-size:13px; color:#666;">Enter trailer information from the paperwork packet.</p>
-   <div id="error-message-1" class="error-msg"></div>
-   <label for="trailer-num-input">Trailer Number</label> <input type="text" id="trailer-num-input" placeholder="e.g., TR-8842"> <label for="manifest-boxes-input">Total Boxes</label> <input type="number" id="manifest-boxes-input" placeholder="e.g., 1450" inputmode="numeric"> <label for="manifest-pallets-input">Total Pallets</label> <input type="number" step="0.01" id="manifest-pallets-input" placeholder="e.g., 24.5" inputmode="decimal">
-   <button id="btn-to-sku-setup" class="success">Next: Add SKUs</button>
+/* ---------- overlays ---------- */
+.scrim{position:fixed;inset:0;background:rgba(6,9,13,.62);z-index:100;display:none}
+.scrim.on{display:block}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:101;background:var(--panel);
+  border-top:1px solid var(--line);border-radius:14px 14px 0 0;
+  padding:14px 16px calc(env(safe-area-inset-bottom) + 16px);max-height:84vh;overflow-y:auto;display:none;
+}
+.sheet.on{display:block}
+.sheet h2{
+  font-family:"Barlow Condensed",sans-serif;font-size:14px;text-transform:uppercase;
+  letter-spacing:.13em;margin:0 0 12px;color:var(--mute);font-weight:600;
+}
+.opt{
+  display:block;width:100%;text-align:left;padding:13px 2px;
+  border-bottom:1px solid var(--line);font-size:14.5px;
+}
+.opt:last-of-type{border-bottom:0}
+.opt.warn{color:var(--danger)}
+.opt.go{color:var(--done)}
+.field{margin-bottom:12px}
+.field label{
+  display:block;font-family:"Barlow Condensed",sans-serif;font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.13em;color:var(--mute);margin-bottom:5px;font-weight:600;
+}
+.lrow{display:flex;align-items:center;gap:8px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.lrow:last-child{border-bottom:0}
+.lrow .info{flex:1;min-width:0}
+.lrow .main{font-size:14px}
+.lrow .who{color:var(--mute);font-size:11.5px;margin-top:2px}
+.vdots{
+  flex:0 0 auto;width:30px;height:30px;border-radius:6px;display:grid;place-items:center;
+  color:var(--mute);font-size:17px;line-height:1;
+}
+.vdots:active{background:var(--panel-2)}
+.yesno{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}
+.yesno button{padding:13px;border-radius:7px;border:1px solid var(--line);font-weight:600}
+.yesno .yes{color:var(--danger);border-color:var(--danger)}
+
+/* drawer */
+.drawer{
+  position:fixed;top:0;bottom:0;left:0;width:82%;max-width:320px;z-index:101;background:var(--panel);
+  border-right:1px solid var(--line);transform:translateX(-101%);transition:transform .2s ease;
+  display:flex;flex-direction:column;
+}
+.drawer.on{transform:none}
+@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+.drawer .pad{padding-top:calc(env(safe-area-inset-top) + 18px)}
+.mitem{
+  display:block;width:100%;text-align:left;padding:15px 2px;border-bottom:1px solid var(--line);font-size:15px;
+}
+.mitem.go{color:var(--accent);font-weight:700}
+.switch{display:flex;align-items:center;justify-content:space-between;padding:15px 2px}
+.toggle{width:44px;height:25px;border-radius:13px;background:var(--line);position:relative;flex:0 0 auto}
+.toggle i{position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:var(--ink);transition:left .15s}
+.toggle.on{background:var(--accent)}
+.toggle.on i{left:22px;background:#0B0D10}
+
+/* anchored menu */
+.popmenu{
+  position:fixed;z-index:105;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  box-shadow:0 12px 28px rgba(0,0,0,.45);padding:4px;min-width:168px;display:none;
+}
+.popmenu.on{display:block}
+.popitem{
+  display:block;width:100%;text-align:left;padding:12px 11px;font-size:14px;
+  border-bottom:1px solid var(--line);
+}
+.popitem:last-child{border-bottom:0}
+.popitem:active{background:var(--panel-2)}
+.popitem.warn{color:var(--danger)}
+.popitem.go{color:var(--done)}
+.pophead{
+  font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.13em;
+  font-size:10px;color:var(--mute);font-weight:600;padding:7px 10px 5px;
+}
+.pcts{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:0 6px 6px}
+.pct{
+  padding:10px 0;border:1px solid var(--line);border-radius:6px;text-align:center;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+}
+.pct.cur{background:var(--accent);border-color:var(--accent);color:#0B0D10;font-weight:700}
+
+/* sticky note */
+.sticky{
+  position:fixed;z-index:106;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:88%;max-width:390px;background:var(--sticky);color:var(--sticky-ink);
+  border-radius:4px;box-shadow:0 16px 40px rgba(0,0,0,.5);padding:16px;display:none;
+}
+.sticky.on{display:block}
+.sticky .doorlabel{
+  text-align:center;font-family:"Barlow Condensed",sans-serif;font-size:19px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;color:var(--sticky-ink);
+}
+.sticky textarea{
+  width:100%;min-height:210px;background:rgba(255,255,255,.42);border:0;border-radius:3px;
+  padding:14px;font-size:14.5px;line-height:1.5;color:var(--sticky-ink);resize:none;
+}
+.sticky textarea:focus{outline:2px solid rgba(0,0,0,.22);outline-offset:-2px}
+.sticky .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.sticky .row.one{grid-template-columns:1fr}
+.sticky .btn{
+  padding:11px;border-radius:5px;background:rgba(0,0,0,.14);color:var(--sticky-ink);
+  font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;font-size:14px;
+}
+.sticky .btn.warn{background:rgba(160,40,30,.16);color:#7A2016}
+.sticky .ask{
+  text-align:center;font-size:13px;margin-top:12px;color:var(--sticky-ink);opacity:.85;
+}
+
+/* toast */
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 44px);
+  z-index:120;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;
+  padding:9px 14px;font-size:12.5px;max-width:88%;text-align:center;display:none;
+}
+#toast.on{display:block}
+
+/* ---------- tables (stats + summary) ---------- */
+.tbl{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+.trow{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 12px;
+  border-bottom:1px solid var(--line);
+}
+.trow:last-child{border-bottom:0}
+.trow .k{flex:1;font-size:14px}
+.trow .v{font-family:"Barlow Condensed",sans-serif;font-size:26px;font-weight:700;line-height:1;min-width:40px;text-align:right;color:var(--ink)}
+.trow.a .v{color:var(--accent)}
+.trow.g .v{color:var(--done)}
+.trow.tap .k::after{content:"  \25be";color:var(--mute);font-size:11px}
+.tdetail{padding:8px 12px 10px;background:var(--panel-2);border-bottom:1px solid var(--line);font-size:13px}
+.tdetail .r{padding:6px 0;border-bottom:1px solid var(--line)}
+.tdetail .r:last-child{border-bottom:0}
+.tdetail .who{color:var(--mute);font-size:11.5px;margin-top:2px}
+.bigstat{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:10px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px;
+}
+.bigstat .n{font-family:"Barlow Condensed",sans-serif;font-size:32px;font-weight:700;color:var(--accent)}
+.bigstat .l{font-family:"Barlow Condensed",sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--mute);font-weight:600;max-width:52%}
+.shiftcard{
+  width:100%;text-align:left;padding:12px;border:1px solid var(--line);border-radius:var(--r);
+  margin-bottom:8px;background:var(--panel-2);
+}
+.shiftcard .d{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:600}
+.shiftcard .m{color:var(--mute);font-size:11.5px;margin-top:2px}
+
+/* print */
+#printArea{display:none}
+@media print{
+  html,body{height:auto;background:#fff;color:#000}
+  .screen,.scrim,.sheet,.drawer,.popmenu,.sticky,#toast{display:none !important}
+  #printArea{display:block !important;padding:0;font-family:Helvetica,Arial,sans-serif;color:#000}
+  #printArea h1{font-size:20px;margin:0 0 2px}
+  #printArea .sub{font-size:12px;color:#444;margin-bottom:14px}
+  #printArea h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;margin:16px 0 5px;border-bottom:1px solid #000;padding-bottom:3px}
+  #printArea table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:4px}
+  #printArea td,#printArea th{border-bottom:1px solid #d5d5d5;padding:4px 3px;text-align:left;vertical-align:top}
+  #printArea th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#333}
+  #printArea .tot td:last-child{text-align:right;font-weight:bold}
+  #printArea ul{margin:2px 0 8px 16px;padding:0;font-size:11.5px}
+  @page{margin:14mm}
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div class="screen on" id="scSetup">
+  <div class="bar">
+    <h1>Floor Tracker</h1>
+    <button class="iconbtn" id="setupMenu" aria-label="Menu">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
   </div>
-  <!-- PHASE 2: SKU SETUP -->
-  <div id="setup-section" class="hidden">
-   <h2>Trailer SKU Setup</h2>
-   <p style="font-size:13px; color:#666;">Add initial SKUs now or skip to add them as you go.</p>
-   <div id="error-message-2" class="error-msg"></div>
-   <input type="text" id="sku-input" maxlength="3" placeholder="e.g., 402" pattern="\d{3}" inputmode="numeric">
-   <button id="btn-add-sku">Add SKU to List</button>
-   <div class="sku-list">
-    <strong>Current SKUs:</strong>
-    <div id="sku-tags">
-     <em>None added yet</em>
+  <div class="pad">
+    <h2 class="big-title">Set your doors</h2>
+    <div class="entry">
+      <div class="rowhead"><span class="lbl">Door #</span><span class="lbl">Trailer ID</span><span class="lbl">Pieces</span><span></span></div>
+      <div class="doorrow">
+        <input id="eDoor" autocomplete="off">
+        <input id="eTrl" autocomplete="off" autocapitalize="characters">
+        <input id="ePc" autocomplete="off" inputmode="numeric">
+        <button class="plus" id="eAdd" aria-label="Add door">+</button>
+      </div>
     </div>
-   </div>
-   <button id="btn-finish-setup" class="success">Start Count</button>
+    <p class="eyebrow listhead">Doors <span id="doorCount" class="cnt">0</span></p>
+    <div id="doorList"></div>
   </div>
-  <!-- PHASE 3: TRACKER VIEW -->
-  <div id="tracking-section" class="hidden">
-   <!-- TOP MENU CONTROLS -->
-   <div class="top-menu-bar">
-    <button id="btn-open-log" class="secondary">📋 View Log</button>
-    <button id="btn-end-session" class="danger">🚪 End Session</button>
-   </div>
-   <!-- OVERALL TOTALS & MANIFEST COMPARISON BANNER -->
-   <div class="summary-banner">
-    <div class="summary-card full-width">
-     <label>DOOR</label> <span id="disp-trailer-num">---</span>
+  <div class="footpad"><button class="primary" id="startShift">Start shift</button></div>
+</div>
+
+<!-- BOARD -->
+<div class="screen" id="scBoard">
+  <div class="bar">
+    <h1 id="boardTitle"></h1>
+    <button class="iconbtn" id="boardMenu" aria-label="Menu">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </div>
+  <div class="board">
+    <div class="left">
+      <div class="doorscroll"><div class="doorgrid" id="doorGrid"></div></div>
     </div>
-    <div class="summary-card">
-     <label>Total Boxes</label> <span id="grand-total-boxes">0 / 0</span> <small id="box-pct">0% Complete</small>
+    <div class="right">
+      <div class="donebar">
+        <button class="donebox" id="openBox">
+          <div class="dlabel">Open</div>
+          <div class="digits open" id="openDigits"></div>
+        </button>
+        <button class="donebox" id="doneBox">
+          <div class="dlabel">Done</div>
+          <div class="digits" id="doneDigits"></div>
+        </button>
+      </div>
+      <div class="panelhead">Log</div>
+      <div class="logs" id="logList"></div>
+      <div class="roster">
+        <div class="rosterbox" id="rosterBox"></div>
+        <div class="addbar">
+          <input id="nameInput" placeholder="Add worker" autocomplete="off" autocorrect="off">
+          <button class="addbtn" id="nameAdd">Add</button>
+          <button class="mini" id="crewMenu" aria-label="Manage crew">⋯</button>
+        </div>
+      </div>
     </div>
-    <div class="summary-card">
-     <label>Total Pallets</label> <span id="grand-total-pallets">0 / 0</span> <small id="pallet-pct">0% Complete</small>
-    </div>
-   </div>
-   <div class="add-sku-bar">
-    <input type="text" id="mid-sku-input" maxlength="3" placeholder="New SKU (3 digits)" pattern="\d{3}" inputmode="numeric">
-    <button id="btn-mid-add-sku">+ Add SKU</button>
-   </div>
-   <div class="table-container">
-    <table class="tracker-table">
-     <thead>
-      <tr>
-       <th>SKU</th>
-       <th>Ti/Hi</th>
-       <th>Action
-        <br>
-        <small style="font-weight:normal;">(Hold for decimal)</small></th>
-       <th>Total Pallets</th>
-       <th>Add Boxes</th>
-       <th>Total Boxes</th>
-      </tr>
-     </thead>
-     <tbody id="tracker-rows"></tbody>
-    </table>
-   </div>
   </div>
-  <!-- PHASE 4: FINAL WORK SESSION SIGN OUT REPORT -->
-  <div id="signout-section" class="hidden">
-   <h2>Work Session Summary</h2>
-   <p style="font-size:13px; color:#666;">Trailer count session finalized.</p>
-   <div class="signout-card">
-    <h3 style="margin-top:0; color:#1a2025;" id="so-trailer">Trailer: ---</h3>
-    <p style="margin:4px 0; font-size:14px;"><strong>Total Boxes Counted:</strong> <span id="so-boxes">0 / 0</span> (<span id="so-box-pct">0%</span>)</p>
-    <p style="margin:4px 0; font-size:14px;"><strong>Total Pallets Counted:</strong> <span id="so-pallets">0 / 0</span> (<span id="so-pallet-pct">0%</span>)</p>
-   </div>
-   <div class="signout-card">
-    <h3>Session Activity Log</h3>
-    <div id="final-activity-log" class="log-list"></div>
-   </div>
-   <button id="btn-new-trailer" class="success">Start New Trailer</button>
+</div>
+
+<!-- SUMMARY -->
+<div class="screen" id="scSummary">
+  <div class="bar">
+    <button class="iconbtn" id="sumBack" aria-label="Back">
+      <svg viewBox="0 0 24 24"><path d="M19 12H6M11 6l-6 6 6 6"/></svg>
+    </button>
+    <h1 id="sumTitle">Summary</h1>
+    <button class="iconbtn" id="sumPdf" aria-label="Save as PDF">
+      <svg viewBox="0 0 24 24"><path d="M6 9V4h12v5M6 18v3h12v-3M6 9h12a2 2 0 012 2v5H4v-5a2 2 0 012-2z"/></svg>
+    </button>
   </div>
-  <!-- GENERAL ACTION MODAL -->
-  <div id="modal-overlay" class="modal-overlay hidden">
-   <div class="modal-card">
-    <h3 id="modal-title">Confirm Action</h3>
-    <div id="modal-body"></div>
-    <div class="modal-actions">
-     <button id="modal-cancel-btn" class="secondary">Cancel</button>
-     <button id="modal-confirm-btn" class="success">Add</button>
-    </div>
-   </div>
+  <div class="pad" id="sumBody"></div>
+  <div class="footpad" id="sumFoot"></div>
+</div>
+
+<div class="popmenu" id="popmenu"></div>
+<div class="sticky" id="sticky"></div>
+<div id="toast"></div>
+<div class="scrim" id="scrim"></div>
+
+<div class="drawer" id="drawer">
+  <div class="pad">
+    <button class="mitem" id="mStats">Shift stats</button>
+    <button class="mitem" id="mSaved">Saved shifts</button>
+    <button class="mitem go" id="mFinish">Finish shift</button>
+    <div class="switch"><span>Light mode</span><button class="toggle" id="themeToggle" aria-label="Toggle light mode"><i></i></button></div>
   </div>
-  <!-- MENU LOG MODAL -->
-  <div id="log-modal-overlay" class="modal-overlay hidden">
-   <div class="modal-card">
-    <h3>Work Session Log</h3>
-    <div id="modal-activity-log" class="log-list" style="margin-bottom:15px;"></div>
-    <button id="log-modal-close-btn" class="secondary">Close</button>
-   </div>
-  </div>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      let trailerNum = '';
-      let manifestBoxes = 0;
-      let manifestPallets = 0;
+</div>
 
-      let skus = [];
-      let trackingData = {};
-      let activityLogs = [];
+<div class="sheet" id="sheet"><div id="sheetBody"></div></div>
+<div id="printArea"></div>
 
-      // Section Elements
-      const trailerSection = document.getElementById('trailer-section');
-      const setupSection = document.getElementById('setup-section');
-      const trackingSection = document.getElementById('tracking-section');
-      const signoutSection = document.getElementById('signout-section');
+<script>
+"use strict";
 
-      // Trailer Inputs
-      const trailerNumInput = document.getElementById('trailer-num-input');
-      const manifestBoxesInput = document.getElementById('manifest-boxes-input');
-      const manifestPalletsInput = document.getElementById('manifest-pallets-input');
-      const btnToSkuSetup = document.getElementById('btn-to-sku-setup');
+/* ---------- storage: window.storage in-app, localStorage when hosted ---------- */
+const Store = {
+  async get(k){
+    if (window.storage){
+      try { const r = await window.storage.get(k, false); return r ? JSON.parse(r.value) : null; } catch(e){}
+    }
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e){ return null; }
+  },
+  async set(k,v){
+    const str = JSON.stringify(v);
+    if (window.storage){ try { await window.storage.set(k, str, false); } catch(e){} }
+    try { localStorage.setItem(k, str); } catch(e){}
+  }
+};
+const K_SHIFTS="lpt.shifts", K_ACTIVE="lpt.active", K_THEME="lpt.theme";
 
-      // SKU Inputs
-      const skuInput = document.getElementById('sku-input');
-      const btnAddSku = document.getElementById('btn-add-sku');
-      const btnFinish = document.getElementById('btn-finish-setup');
-      const skuTags = document.getElementById('sku-tags');
-      const trackerRows = document.getElementById('tracker-rows');
-      
-      const midSkuInput = document.getElementById('mid-sku-input');
-      const btnMidAddSku = document.getElementById('btn-mid-add-sku');
+/* ---------- state ---------- */
+let shifts = [], shift = null;
+let selectedPerson = null;
+let setupRows = [];
+let saveTimer = null, toastTimer = null;
+let openDetail = null;      // summary accordion: one open at a time
+let stickyRef = null;
 
-      // Banner Display
-      const dispTrailerNum = document.getElementById('disp-trailer-num');
-      const grandTotalBoxes = document.getElementById('grand-total-boxes');
-      const grandTotalPallets = document.getElementById('grand-total-pallets');
-      const boxPct = document.getElementById('box-pct');
-      const palletPct = document.getElementById('pallet-pct');
+const uid = () => Math.random().toString(36).slice(2,9);
+const $ = s => document.querySelector(s);
+const el = (t,c,x) => { const n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n; };
+const digits3 = v => String(v||"").replace(/\D/g,"").slice(0,3);
+const door3 = v => { const d = digits3(v); return d ? d.padStart(3,"0") : ""; };
+function bindDoor(i){
+  i.inputMode="numeric"; i.maxLength=3;
+i.addEventListener("input", ()=>{ i.value = digits3(i.value); });
+  i.addEventListener("blur", ()=>{ i.value = door3(i.value); });
+}
 
-      // Menu & Signout Controls
-      const btnOpenLog = document.getElementById('btn-open-log');
-      const btnEndSession = document.getElementById('btn-end-session');
-      const btnNewTrailer = document.getElementById('btn-new-trailer');
+const pad2 = n => String(n).padStart(2,"0");
+function clock(ts){ const d=new Date(ts); let h=d.getHours(); const m=pad2(d.getMinutes()); const ap=h>=12?"p":"a"; h=h%12||12; return h+":"+m+ap; }
+function dur(ms){ const s=Math.max(0,Math.floor(ms/1000)), h=Math.floor(s/3600), m=Math.floor(s%3600/60); return h? h+"h "+pad2(m)+"m" : m+"m "+pad2(s%60)+"s"; }
+function dayLabel(ts){ return new Date(ts).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }
+const personName = id => { const p = shift.people.find(x=>x.id===id); return p ? p.name : ""; };
+const namesIn = ids => ids.map(personName).filter(Boolean).join(", ") || "\u2014";
+const elapsedOf = d => (d.elapsed||0) + (d.runningSince ? Date.now()-d.runningSince : 0);
+const isEmptyDoor = d => !d.done && !!d.startedAt && !d.assigned.length;
 
-      // Log Modal Elements
-      const logModalOverlay = document.getElementById('log-modal-overlay');
-      const logModalCloseBtn = document.getElementById('log-modal-close-btn');
-      const modalActivityLog = document.getElementById('modal-activity-log');
-      const finalActivityLog = document.getElementById('final-activity-log');
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("on");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("on"), 2600);
+}
 
-      // General Modal Elements
-      const modalOverlay = document.getElementById('modal-overlay');
-      const modalTitle = document.getElementById('modal-title');
-      const modalBody = document.getElementById('modal-body');
-      const modalConfirmBtn = document.getElementById('modal-confirm-btn');
-      const modalCancelBtn = document.getElementById('modal-cancel-btn');
+function blankDoor(num){
+  return { id:uid(), door:String(num||""), trailer:"", pieces:0, assigned:[], worked:[],
+           startedAt:null, runningSince:null, elapsed:0, completedAt:null, done:false,
+           note:"", progress:0, checkpoints:[] };
+}
+function newShift(rows){
+  return {
+    id:uid(), startedAt:Date.now(), endedAt:null, status:"active", people:[], logs:[],
+    doors: rows.map(r=>{
+      const d = blankDoor(door3(r.door));
+      d.trailer = String(r.trailer||"").trim();
+      d.pieces = Number(r.pieces)||0;
+      return d;
+    })
+  };
+}
+function migrate(s){
+  (s.doors||[]).forEach(d=>{
+    if (d.note === undefined) d.note = Array.isArray(d.notes) ? d.notes.map(n=>n.text).join("\n\n") : "";
+    delete d.notes;
+    if (!d.checkpoints) d.checkpoints = [];
+    if (d.progress === undefined) d.progress = d.done ? 100 : 0;
+    if (d.elapsed === undefined){
+      d.elapsed = d.startedAt ? ((d.completedAt||Date.now()) - d.startedAt) : 0;
+      d.runningSince = (!d.done && d.assigned.length) ? Date.now() : null;
+    }
+  });
+  return s;
+}
 
-      function showError(elId, msg) {
-        const errEl = document.getElementById(elId);
-        errEl.innerText = msg;
-        errEl.style.display = 'block';
-        setTimeout(() => { errEl.style.display = 'none'; }, 3000);
+function log(text, type){
+  shift.logs.unshift({ id:uid(), ts:Date.now(), text, type:type||"move" });
+  if (shift.logs.length > 400) shift.logs.length = 400;
+}
+function save(){
+  if (!shift) return;
+  const i = shifts.findIndex(s=>s.id===shift.id);
+  if (i<0) shifts.unshift(shift); else shifts[i]=shift;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    Store.set(K_SHIFTS, shifts);
+    Store.set(K_ACTIVE, shift && shift.status==="active" ? shift.id : null);
+  }, 120);
+}
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id)); }
+
+/* ---------------- setup ---------------- */
+function renderSetup(){
+  const list=$("#doorList"); list.innerHTML="";
+  $("#doorCount").textContent = setupRows.length;
+  if (setupRows.length){
+    setupRows.forEach((r,i)=>{
+      const row=el("div","drow");
+      row.append(el("div","dn", r.door));
+      row.append(el("div","dt"+(r.trailer?"":" none"), r.trailer || "no trailer ID"));
+      row.append(el("div","dp", r.pieces ? Number(r.pieces).toLocaleString()+" pc" : ""));
+      const x=el("button","x","\u00d7"); x.setAttribute("aria-label","Remove door "+r.door);
+      x.onclick=()=>{ setupRows.splice(i,1); renderSetup(); };
+      row.append(x);
+      list.append(row);
+    });
+  }
+  $("#startShift").disabled = !setupRows.length;
+}
+
+function addSetupRow(){
+  const dEl=$("#eDoor"), tEl=$("#eTrl"), pEl=$("#ePc");
+  const door = door3(dEl.value);
+  if (!door){ toast("Enter a door number."); dEl.focus(); return; }
+  if (setupRows.some(r=>r.door===door)){ toast("Door "+door+" is already on the list."); dEl.focus(); return; }
+  setupRows.push({ door, trailer:tEl.value.trim(), pieces:Number(pEl.value)||0 });
+  dEl.value=""; tEl.value=""; pEl.value="";
+  renderSetup();
+  dEl.focus();
+}
+
+bindDoor($("#eDoor"));
+$("#eAdd").onclick = addSetupRow;
+$("#eDoor").onkeydown = e => { if (e.key==="Enter"){ e.preventDefault(); $("#eTrl").focus(); } };
+$("#eTrl").onkeydown  = e => { if (e.key==="Enter"){ e.preventDefault(); $("#ePc").focus(); } };
+$("#ePc").onkeydown   = e => { if (e.key==="Enter"){ e.preventDefault(); addSetupRow(); } };
+
+$("#startShift").onclick = ()=>{
+  if (!setupRows.length) return;
+  shift = newShift(setupRows);
+  log("Shift started");
+  shift.doors.forEach(d=> log("Door "+d.door+" opened"+(d.trailer? " \u00b7 "+d.trailer : "")));
+  save(); openBoard();
+};
+
+/* ---------------- board ---------------- */
+function openBoard(){
+  show("scBoard");
+  $("#boardTitle").textContent = dayLabel(shift.startedAt);
+  renderBoard();
+}
+function renderBoard(){ renderDoors(); renderDone(); renderLogs(); renderRoster(); }
+
+function renderDone(){
+  const counter = (sel, n)=>{
+    const txt = n < 10 ? "0"+n : String(n);
+    const box = $(sel); box.innerHTML="";
+    txt.split("").forEach(ch=> box.append(el("div","dg",ch)));
+  };
+  counter("#openDigits", shift.doors.filter(d=>!d.done && d.assigned.length).length);
+  counter("#doneDigits", shift.doors.filter(d=>d.done).length);
+}
+
+/* finished trailers drop off the board; they live on in stats, the summary and the pdf */
+function orderedDoors(){
+  const num = d => { const n = parseInt(d.door,10); return isNaN(n) ? Infinity : n; };
+  return shift.doors.filter(d=>!d.done)
+    .sort((a,b)=> ((isEmptyDoor(a)?1:0) - (isEmptyDoor(b)?1:0)) || (num(a)-num(b)));
+}
+
+function renderDoors(){
+  const g=$("#doorGrid"); g.innerHTML="";
+  orderedDoors().forEach(d=>{
+    const working = !d.done && d.assigned.length>0;
+    const empty = isEmptyDoor(d);
+    const slim = d.done || empty;
+    const state = d.done ? "done" : (working ? "working" : (empty ? "empty" : ""));
+
+    const pl = el("div","placard "+state);
+    pl.append(el("span",null, d.door || "\u2014"));
+
+    const t = el("div","trailer "+state+(slim?" slim":""));
+    t.dataset.door = d.id;
+
+    if (!d.done && d.progress > 0){
+      const bar = el("div","prog"), fill = el("i");
+      fill.style.height = d.progress + "%";
+      bar.append(fill); t.append(bar);
+    }
+
+    const top = el("div","t-top");
+    top.append(el("div","t-pc mono", d.pieces ? d.pieces.toLocaleString()+" pc" : ""));
+    if (d.done) top.append(el("div","fin","Finished"));
+
+    const ni = el("button","icbtn"+(d.note ? " has":""));
+    ni.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>';
+    ni.setAttribute("aria-label","Door note");
+    ni.onclick = ev=>{ ev.stopPropagation(); openSticky(d); };
+    top.append(ni);
+
+    const dots = el("button","icbtn","\u22ef");
+    dots.setAttribute("aria-label","Trailer menu");
+    dots.onclick = ev=>{
+      ev.stopPropagation();
+      const r = dots.getBoundingClientRect();
+      trailerMenu(d, r.left + r.width/2, r.bottom);
+    };
+    top.append(dots);
+    t.append(top);
+
+    if (!slim){
+      const wrap = el("div","chipwrap");
+      const chips = el("div","chips");
+      if (d.assigned.length){
+        d.assigned.forEach(pid=>{
+          const c = el("div","chip"+(selectedPerson===pid?" sel":""), personName(pid));
+          c.dataset.person = pid;
+          c.onclick = ev=>{
+            ev.stopPropagation();
+            if (selectedPerson === pid){ unassign(pid); selectPerson(null); }
+            else if (selectedPerson){ assign(selectedPerson, d.id); selectPerson(null); }
+            else selectPerson(pid);
+          };
+          chips.append(c);
+        });
       }
+      wrap.append(chips);
+      chips.addEventListener("scroll", ()=> fadeCheck(wrap, chips));
+      t.append(wrap);
+    }
 
-      // 1. TRAILER SETUP STEP
-      btnToSkuSetup.addEventListener('click', () => {
-        const tVal = trailerNumInput.value.trim();
-        if (!tVal) {
-          showError('error-message-1', 'Please enter a Trailer Number.');
-          return;
-        }
+    t.onclick = ()=>{ if (selectedPerson){ assign(selectedPerson, d.id); selectPerson(null); } };
+    g.append(pl, t);
+  });
 
-        trailerNum = tVal;
-        manifestBoxes = parseInt(manifestBoxesInput.value, 10) || 0;
-        manifestPallets = parseFloat(manifestPalletsInput.value) || 0;
+  requestAnimationFrame(()=>{
+    g.querySelectorAll(".chipwrap").forEach(w=> fadeCheck(w, w.querySelector(".chips")));
+  });
 
-        trailerSection.classList.add('hidden');
-        setupSection.classList.remove('hidden');
+  const add = el("button","addrow","+ Add door");
+  add.onclick = ()=> doorSheet(blankDoor(""), true);
+  g.append(add);
+}
+
+function fadeCheck(wrap, chips){
+  if (!chips) return;
+  const more = chips.scrollWidth - chips.clientWidth - chips.scrollLeft > 4;
+  wrap.classList.toggle("more", more);
+}
+
+function renderLogs(){
+  const L=$("#logList"); L.innerHTML="";
+  if (!shift.logs.length) return;
+  shift.logs.forEach(it=>{
+    const row=el("div","log"+(it.type==="done"?" ok":""));
+    row.append(el("span","ts mono", clock(it.ts)));
+    row.append(el("span",null,it.text));
+    L.append(row);
+  });
+}
+
+function renderRoster(){
+  const box=$("#rosterBox"); box.innerHTML="";
+  const q=$("#nameInput").value.trim().toLowerCase();
+  const placed=new Set(shift.doors.flatMap(d=>d.assigned));
+  const free=shift.people.filter(p=>!placed.has(p.id));
+  const list=free.filter(p=>!q || p.name.toLowerCase().includes(q));
+
+  const collapse = !free.length && !q;
+  document.querySelector(".roster").classList.toggle("min", collapse);
+  if (collapse) return;
+
+  if (!list.length) return;
+  list.forEach(p=>{
+    const n=el("div","person"+(selectedPerson===p.id?" sel":""), p.name);
+    n.onclick = ()=> selectPerson(selectedPerson===p.id ? null : p.id);
+    box.append(n);
+  });
+}
+
+function selectPerson(id){
+  selectedPerson = id;
+  /* toggle in place - rebuilding the cards resets the name row's scroll and flickers */
+  document.querySelectorAll("#doorGrid .chip").forEach(c=>{
+    c.classList.toggle("sel", !!id && c.dataset.person === id);
+  });
+  renderRoster();
+}
+
+/* ---------------- crew ---------------- */
+function addName(){
+  const inp=$("#nameInput"), name=inp.value.trim();
+  if (!name) return;
+  if (shift.people.some(p=>p.name.toLowerCase()===name.toLowerCase())){ inp.value=""; renderRoster(); return; }
+  shift.people.push({ id:uid(), name });
+  inp.value=""; save(); renderRoster();
+}
+$("#nameAdd").onclick = addName;
+$("#nameInput").oninput = renderRoster;
+$("#nameInput").onkeydown = e => { if (e.key==="Enter") addName(); };
+$("#crewMenu").onclick = ()=> crewSheet();
+
+function crewSheet(){
+  if (!shift.people.length){ openSheet("Crew", [{label:"Close", fn:()=>{}}]); return; }
+  openSheet("Remove from crew", shift.people.map(p=>({
+    label: p.name, cls:"warn", fn:()=>{
+      shift.doors.forEach(d=>{
+        d.assigned = d.assigned.filter(x=>x!==p.id);
+        d.worked   = d.worked.filter(x=>x!==p.id);
+        pauseIfEmpty(d);
       });
+      shift.people = shift.people.filter(x=>x.id!==p.id);
+      log(p.name+" removed from crew");
+      save(); renderBoard();
+    }
+  })));
+}
 
-      // 2. SKU SETUP STEP
-      function addSkuToList(val) {
-        if (/^\d{3}$/.test(val)) {
-          if (!skus.includes(val)) {
-            skus.push(val);
-            trackingData[val] = { ti: 0, hi: 0, pallets: 0, partialBoxes: 0 };
-            skuTags.innerHTML = skus.map(s => `<span>${s}</span>`).join('');
-            
-            if (!trackingSection.classList.contains('hidden')) {
-              appendTrackerRow(val);
-            }
-          }
-          return true;
-        } else {
-          showError('error-message-2', 'Please enter exactly 3 digits for the SKU.');
+/* ---------------- assignment ---------------- */
+function assign(pid, toId){
+  const to = shift.doors.find(d=>d.id===toId);
+  if (!to || to.done) return;
+  const from = shift.doors.find(d=>d.assigned.includes(pid));
+  if (from && from.id===to.id) return;
+  if (from){ from.assigned = from.assigned.filter(x=>x!==pid); pauseIfEmpty(from); }
+  to.assigned.push(pid);
+  if (!to.worked.includes(pid)) to.worked.push(pid);
+  if (!to.startedAt) to.startedAt = Date.now();
+  if (!to.runningSince) to.runningSince = Date.now();
+  log(from ? personName(pid)+" moved "+from.door+" \u2192 "+to.door
+           : personName(pid)+" placed - door "+to.door);
+  save(); renderBoard();
+}
+function pauseIfEmpty(d){
+  if (d.assigned.length || !d.runningSince) return;
+  d.elapsed = (d.elapsed||0) + (Date.now()-d.runningSince);
+  d.runningSince = null;
+}
+function unassign(pid){
+  const from = shift.doors.find(d=>d.assigned.includes(pid));
+  if (!from) return;
+  from.assigned = from.assigned.filter(x=>x!==pid);
+  log(personName(pid)+" pulled off door "+from.door);
+  pauseIfEmpty(from);
+  save(); renderBoard();
+}
+function completeDoor(d){
+  if (d.runningSince){ d.elapsed=(d.elapsed||0)+(Date.now()-d.runningSince); d.runningSince=null; }
+  d.done = true; d.progress = 100; d.completedAt = Date.now();
+  d.assigned = [];
+  log("Door "+d.door+" finished \u00b7 "+(d.trailer||"no ID")+" \u00b7 "+dur(elapsedOf(d)), "done");
+  save(); renderBoard();
+}
+
+/* ---------------- sheets ---------------- */
+function openSheet(title, options, node){
+  const b=$("#sheetBody"); b.innerHTML="";
+  b.append(el("h2",null,title));
+  if (node) b.append(node);
+  (options||[]).forEach(o=>{
+    const btn=el("button","opt "+(o.cls||""), o.label);
+    btn.onclick = ()=>{ if (o.fn() !== false) closeSheet(); };
+    b.append(btn);
+  });
+  $("#sheet").classList.add("on"); $("#scrim").classList.add("on");
+}
+function closeSheet(){ $("#sheet").classList.remove("on"); if(!$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
+
+$("#scrim").onclick = ()=>{ closeSheet(); closeDrawer(); closePop(); closeSticky(); };
+
+/* ---------------- anchored menu ---------------- */
+function closePop(){ $("#popmenu").classList.remove("on"); if(!$("#sheet").classList.contains("on") && !$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
+function openPop(x,y,build){
+  const m=$("#popmenu"); m.innerHTML=""; build(m);
+  m.classList.add("on"); $("#scrim").classList.add("on");
+  const r=m.getBoundingClientRect();
+  m.style.left = Math.min(Math.max(8, x-r.width/2), window.innerWidth-r.width-8)+"px";
+  m.style.top  = Math.min(Math.max(8, y+8), window.innerHeight-r.height-8)+"px";
+}
+function popItem(m,label,fn,cls){
+  const b=el("button","popitem "+(cls||""), label);
+  b.onclick = ()=>{ closePop(); setTimeout(fn,10); };
+  m.append(b);
+}
+
+function trailerMenu(d,x,y){
+  openPop(x,y,m=>{
+    popItem(m,"Edit trailer", ()=> doorSheet(d,false));
+    popItem(m,"Add checkpoint", ()=> checkpointMenu(d,x,y));
+    if (!d.done) popItem(m,"Mark complete", ()=> completeDoor(d), "go");
+    popItem(m,"Delete door", ()=> confirmDelete(d), "warn");
+  });
+}
+
+function checkpointMenu(d,x,y){
+  openPop(x,y,m=>{
+    m.append(el("div","pophead","How far along?"));
+    const grid=el("div","pcts");
+    [10,20,30,40,50,60,70,80,90,100].forEach(v=>{
+      const b=el("button","pct"+(d.progress===v?" cur":""), v+"%");
+      b.onclick = ()=>{ closePop(); setCheckpoint(d,v); };
+      grid.append(b);
+    });
+    m.append(grid);
+    if (d.progress) popItem(m,"Clear progress", ()=> setCheckpoint(d,0));
+  });
+}
+function setCheckpoint(d,pct){
+  d.progress = pct;
+  if (pct) d.checkpoints.push({ ts:Date.now(), pct }); else d.checkpoints = [];
+  log("Door "+d.door+" \u00b7 "+(pct ? pct+"% checkpoint" : "progress cleared"));
+  save(); renderBoard();
+}
+
+/* ---------------- door edit ---------------- */
+function doorSheet(d, isNew){
+  const box=el("div");
+  const mk=(label,val)=>{ const f=el("div","field"); f.append(el("label",null,label)); const i=el("input"); i.value=val; f.append(i); box.append(f); return i; };
+  const iDoor = mk("Door number", d.door); bindDoor(iDoor);
+  const iTrl  = mk("Trailer ID", d.trailer); iTrl.autocapitalize="characters";
+  const iPc   = mk("Piece count", d.pieces||""); iPc.inputMode="numeric";
+
+  openSheet(isNew ? "Add door" : "Door "+(d.door||"\u2014"), [
+    { label:"Save", cls:"go", fn:()=>{
+        const door = door3(iDoor.value), trailer = iTrl.value.trim(), pieces = Number(iPc.value)||0;
+        if (isNew && !door && !trailer && !pieces) return true;   // nothing entered: add nothing
+        if (door && doorNumberBlocked(door, d.id)){
+          toast("Door "+door+" is still working. Finish that trailer first.");
           return false;
         }
-      }
+        const wasDoor = d.door, wasTrailer = d.trailer;
+        d.door = door; d.trailer = trailer; d.pieces = pieces;
+        if (isNew){
+          shift.doors.push(d);
+          log("Door "+(d.door||"\u2014")+" opened"+(d.trailer? " \u00b7 "+d.trailer : ""));
+        } else if (door !== wasDoor){
+          log("Door "+wasDoor+" \u2192 door "+d.door);
+        } else if (trailer !== wasTrailer){
+          log("Door "+d.door+" \u00b7 trailer "+(d.trailer||"cleared"));
+        }
+        save(); renderBoard();
+      }},
+    { label:"Cancel", fn:()=>{} }
+  ], box);
+}
 
-      btnAddSku.addEventListener('click', () => {
-        if (addSkuToList(skuInput.value.trim())) {
-          skuInput.value = '';
-          skuInput.focus();
+/* a door number may repeat only once the earlier trailer on it is finished */
+function doorNumberBlocked(num, exceptId){
+  return shift.doors.some(d => d.id!==exceptId && String(d.door)===String(num) && !d.done);
+}
+function confirmDelete(d){
+  const box=el("div"), row=el("div","yesno");
+  const yes=el("button","yes","Yes"), no=el("button",null,"No");
+  yes.onclick = ()=>{
+    shift.doors = shift.doors.filter(x=>x.id!==d.id);
+    log("Door "+(d.door||"\u2014")+" removed");
+    save(); renderBoard(); closeSheet();
+  };
+  no.onclick = closeSheet;
+  row.append(yes,no); box.append(row);
+  openSheet("Delete?", [], box);
+}
+
+/* ---------------- sticky note ---------------- */
+function openSticky(d){
+  const m=$("#sticky"); m.innerHTML="";
+  m.append(el("div","doorlabel","Door "+(d.door||"\u2014")));
+  const ta=el("textarea"); ta.value = d.note||"";
+  m.append(ta);
+
+  const row=el("div","row");
+  const clear=el("button","btn warn","Clear");
+  const done=el("button","btn","Done");
+  done.onclick = closeSticky;
+  clear.onclick = ()=>{
+    row.remove();
+    const ask=el("div","ask","Clear this note?");
+const row2=el("div","row");
+    const yes=el("button","btn warn","Yes"), no=el("button","btn","No");
+    yes.onclick = ()=>{
+      ta.value = "";
+      if (d.note){
+        d.note = "";
+        log("Note cleared \u00b7 door "+(d.door||"\u2014"));
+        save(); renderBoard();
+      }
+      stickyRef = null;
+      $("#sticky").classList.remove("on");
+      if (!$("#sheet").classList.contains("on") && !$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on");
+    };
+    no.onclick = ()=>{ ask.remove(); row2.remove(); m.append(row); };
+    row2.append(yes,no); m.append(ask,row2);
+  };
+  row.append(clear,done); m.append(row);
+
+  stickyRef = { d, ta };
+  m.classList.add("on"); $("#scrim").classList.add("on");
+  setTimeout(()=>ta.focus(), 60);
+}
+
+function closeSticky(){
+  if (stickyRef){
+    const { d, ta } = stickyRef;
+    const v = ta.value.trim();
+    if (v !== (d.note||"")){
+      d.note = v;
+      log("Note "+(v ? "saved" : "cleared")+" \u00b7 door "+(d.door||"\u2014"));
+      save(); renderBoard();
+    }
+    stickyRef = null;
+  }
+  $("#sticky").classList.remove("on");
+  if (!$("#sheet").classList.contains("on") && !$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on");
+}
+
+/* ---------------- open / done lists ---------------- */
+function doorListSheet(kind){
+  const done = kind === "done";
+  const rows = shift.doors.filter(d => done ? d.done : (!d.done && d.assigned.length));
+  const title = done ? "Finished trailers" : "Doors working";
+  if (!rows.length){
+    openSheet(title, [{ label:"Close", fn:()=>{} }],
+      el("div","t-empty", done ? "Nothing finished yet." : "Nobody is in a door yet."));
+    return;
+  }
+  const box = el("div");
+  rows.forEach(d=>{
+    const row = el("div","lrow");
+    const info = el("div","info");
+    info.append(el("div","main", (d.trailer || "no ID") + "  \u00b7  door " + d.door));
+    const who = done ? (d.worked.length ? namesIn(d.worked) : "no crew logged")
+                     : (d.assigned.length ? namesIn(d.assigned) : "\u2014");
+    info.append(el("div","who", who + (done ? "  \u00b7  " + dur(elapsedOf(d)) : "")));
+    row.append(info);
+
+    const v = el("button","vdots","\u22ee");
+    v.setAttribute("aria-label","Options");
+    v.onclick = ev=>{
+      ev.stopPropagation();
+      const r = v.getBoundingClientRect();
+      openPop(r.left + r.width/2, r.bottom, m=>{
+        if (done){
+          popItem(m,"Mark unfinished", ()=> markUnfinished(d, kind));
+        } else {
+          popItem(m,"Mark complete", ()=>{ completeDoor(d); doorListSheet(kind); }, "go");
         }
       });
+    };
+    row.append(v);
+    box.append(row);
+  });
+  openSheet(title, [{ label:"Close", fn:()=>{} }], box);
+}
 
-      skuInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          if (addSkuToList(skuInput.value.trim())) {
-            skuInput.value = '';
-          }
-        }
-      });
+function markUnfinished(d, kind){
+  if (doorNumberBlocked(d.door, d.id)){
+    toast("Door "+d.door+" already has another trailer working.");
+    return;
+  }
+  d.done = false;
+  d.completedAt = null;
+  const last = d.checkpoints.filter(c=>c.pct < 100).pop();
+  d.progress = last ? last.pct : 0;
+  log("Door "+d.door+" reopened \u00b7 "+(d.trailer||"no ID"));
+  save(); renderBoard();
+  doorListSheet(kind);
+}
 
-      btnMidAddSku.addEventListener('click', () => {
-        if (addSkuToList(midSkuInput.value.trim())) {
-          midSkuInput.value = '';
-        }
-      });
+$("#openBox").onclick = ()=> doorListSheet("open");
+$("#doneBox").onclick = ()=> doorListSheet("done");
 
-      btnFinish.addEventListener('click', () => {
-        setupSection.classList.add('hidden');
-        trackingSection.classList.remove('hidden');
-        dispTrailerNum.innerText = trailerNum;
-        renderTable();
-      });
+/* ---------------- stats ---------------- */
+function statsSheet(){
+  if (!shift){ toast("No shift open yet."); return; }
+  const box=el("div"), tbl=el("div","tbl");
+  let openKey=null;
 
-      function renderTable() {
-        trackerRows.innerHTML = '';
-        skus.forEach(sku => appendTrackerRow(sku));
-        recalculateOverallTotals();
-      }
+  const working = shift.doors.filter(d=>!d.done && d.assigned.length);
+  const empty   = shift.doors.filter(isEmptyDoor);
+  const done    = shift.doors.filter(d=>d.done);
 
-      function appendTrackerRow(sku) {
-        const tr = document.createElement('tr');
-        tr.id = `row-${sku}`;
-        tr.innerHTML = `
-          <td><strong>${sku}</strong></td>
-          <td>
-            <input type="text" class="row-tihi tihi-input" data-sku="${sku}" placeholder="0/0" inputmode="numeric">
-          </td>
-          <td>
-            <button class="btn-pallet pallet-btn" data-sku="${sku}">+ Count</button>
-          </td>
-          <td>
-            <span class="read-only-val" id="count-pallet-${sku}">0</span>
-          </td>
-          <td>
-            <input type="number" class="row-loose loose-input" data-sku="${sku}" placeholder="0" inputmode="numeric">
-          </td>
-          <td>
-            <span class="read-only-val" id="total-boxes-${sku}">0</span>
-          </td>
-        `;
-        trackerRows.appendChild(tr);
+  const rows=[
+    { key:"work", k:"Doors working", v:working.length, cls:"a" },
+    { key:"idle", k:"Doors empty",   v:empty.length,   cls:"" },
+    { key:"crew", k:"Lumpers",       v:shift.people.length, cls:"", detail:()=> shift.people.map(p=>{
+        const at = shift.doors.find(d=>d.assigned.includes(p.id));
+        return { main:p.name, sub: at ? "door "+at.door : "unplaced" };
+      })},
+    { key:"fin",  k:"Trailers finished", v:done.length, cls:"g", detail:()=> done.map(d=>({
+        main:(d.trailer||"no ID")+" \u00b7 door "+d.door+" \u00b7 "+dur(elapsedOf(d)),
+        sub: d.worked.length ? namesIn(d.worked) : "no crew logged"
+      }))}
+  ];
 
-        const btn = tr.querySelector('.pallet-btn');
-        attachSmartButtonEvents(btn, sku);
-      }
-
-      // TIMESTAMPED LOGGING
-      function logEntry(sku, actionDescription) {
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        activityLogs.unshift({ time: timeStr, sku: sku, desc: actionDescription });
-      }
-
-      function renderLogList(containerEl) {
-        if (activityLogs.length === 0) {
-          containerEl.innerHTML = `<div style="color:#999; text-align:center; padding:10px;">No entries recorded yet</div>`;
-          return;
-        }
-
-        containerEl.innerHTML = activityLogs.map(log => `
-          <div class="log-item">
-            <span class="log-time">[${log.time}]</span>
-            <strong>SKU ${log.sku}:</strong> ${log.desc}
-          </div>
-        `).join('');
-      }
-
-      // MENU LOG MODAL HANDLERS
-      btnOpenLog.addEventListener('click', () => {
-        renderLogList(modalActivityLog);
-        logModalOverlay.classList.remove('hidden');
-      });
-
-      logModalCloseBtn.addEventListener('click', () => {
-        logModalOverlay.classList.add('hidden');
-      });
-
-      // END SESSION / SIGN OUT HANDLER
-      btnEndSession.addEventListener('click', () => {
-        if (confirm("Are you sure you want to end this trailer count session?")) {
-          trackingSection.classList.add('hidden');
-          signoutSection.classList.remove('hidden');
-
-          let grandBoxes = 0;
-          let grandPallets = 0;
-
-          skus.forEach(sku => {
-            const data = trackingData[sku];
-            const perPallet = data.ti * data.hi;
-            const boxes = Math.round((data.pallets * perPallet) + data.partialBoxes);
-            
-            grandBoxes += boxes;
-            grandPallets += data.pallets;
-            
-            if (perPallet > 0 && data.partialBoxes > 0) {
-              grandPallets += (data.partialBoxes / perPallet);
-            }
-          });
-
-          const displayPalletTotal = (grandPallets % 1 === 0) ? grandPallets : grandPallets.toFixed(2);
-          const boxPercentage = manifestBoxes > 0 ? ((grandBoxes / manifestBoxes) * 100).toFixed(1) : '0';
-          const palletPercentage = manifestPallets > 0 ? ((grandPallets / manifestPallets) * 100).toFixed(1) : '0';
-
-          document.getElementById('so-trailer').innerText = `Trailer: ${trailerNum}`;
-          document.getElementById('so-boxes').innerText = `${grandBoxes} / ${manifestBoxes}`;
-          document.getElementById('so-box-pct').innerText = `${boxPercentage}% Complete`;
-          document.getElementById('so-pallets').innerText = `${displayPalletTotal} / ${manifestPallets}`;
-          document.getElementById('so-pallet-pct').innerText = `${palletPercentage}% Complete`;
-
-          renderLogList(finalActivityLog);
-        }
-      });
-
-      btnNewTrailer.addEventListener('click', () => {
-        location.reload(); // Fresh restart for next trailer
-      });
-
-      // TAP & LONG-PRESS EVENT HANDLER
-      function attachSmartButtonEvents(button, sku) {
-        let timer = null;
-        let isLongPress = false;
-
-        const start = () => {
-          isLongPress = false;
-          timer = setTimeout(() => {
-            isLongPress = true;
-            if (navigator.vibrate) navigator.vibrate(50);
-            openDecimalModal(sku);
-          }, 500);
-        };
-
-        const cancel = () => {
-          clearTimeout(timer);
-        };
-
-        button.addEventListener('touchstart', start, { passive: true });
-        button.addEventListener('touchend', (e) => {
-          cancel();
-          if (!isLongPress) {
-            openTapModal(sku);
-          }
-          e.preventDefault();
+  function paint(){
+    tbl.innerHTML="";
+    rows.forEach(r=>{
+      const b=el("button","trow "+(r.cls||"")+(r.detail?" tap":""));
+      b.append(el("div","k",r.k));
+      b.append(el("div","v",String(r.v)));
+      if (r.detail) b.onclick = ()=>{ openKey = openKey===r.key ? null : r.key; paint(); };
+      tbl.append(b);
+      if (r.detail && openKey===r.key){
+        const dd=el("div","tdetail");
+        const list=r.detail();
+        if (!list.length) dd.append(el("div","r","Nothing here yet."));
+        list.forEach(x=>{
+          const row=el("div","r"); row.append(el("div",null,x.main));
+          if (x.sub) row.append(el("div","who",x.sub));
+          dd.append(row);
         });
-        button.addEventListener('touchcancel', cancel);
-
-        button.addEventListener('mousedown', start);
-        button.addEventListener('mouseup', cancel);
-        button.addEventListener('mouseleave', cancel);
-        
-        button.addEventListener('click', (e) => {
-          if (e.pointerType === 'mouse' && !isLongPress) {
-            openTapModal(sku);
-          }
-        });
+        tbl.append(dd);
       }
-
-      // 1. TAP POPUP (+1 Pallet)
-      function openTapModal(sku) {
-        const data = trackingData[sku];
-        if (data.ti === 0 || data.hi === 0) {
-          alert("Please enter a valid Ti/Hi for SKU " + sku + " first!");
-          return;
-        }
-
-        const addedBoxes = data.ti * data.hi;
-        modalTitle.innerText = `SKU: ${sku}`;
-        modalBody.innerHTML = `
-          <p>Add <strong>1 Full Pallet</strong> (${addedBoxes} boxes)?</p>
-        `;
-        modalConfirmBtn.className = "success";
-        modalConfirmBtn.innerText = "+ Add 1 Pallet";
-        modalConfirmBtn.onclick = () => {
-          trackingData[sku].pallets += 1;
-          logEntry(sku, `Added +1 Full Pallet (${addedBoxes} boxes)`);
-          updateRowTotals(sku);
-          closeModal();
-        };
-        modalOverlay.classList.remove('hidden');
-      }
-
-      // 2. LONG-PRESS POPUP (AUTO-DECIMAL)
-      function openDecimalModal(sku) {
-        const data = trackingData[sku];
-        const perPallet = data.ti * data.hi;
-
-        if (perPallet === 0) {
-          alert("Please enter a valid Ti/Hi for SKU " + sku + " first!");
-          return;
-        }
-
-        modalTitle.innerText = `Partial Pallet: SKU ${sku}`;
-        modalBody.innerHTML = `
-          <p style="font-size:12px; margin-bottom:8px;">1 Pallet = <strong>${perPallet}</strong> boxes (${data.ti}/${data.hi})</p>
-          <label style="display:block; text-align:left; font-size:12px; font-weight:bold; margin-bottom:4px;">Enter Decimal Portion:</label>
-          <input type="text" id="decimal-input" value="." inputmode="decimal">
-          
-          <div id="calc-preview" style="font-size:13px; font-weight:bold; color:#0056b3; margin-top:5px; height:20px;"></div>
-        `;
-
-        const decimalInput = document.getElementById('decimal-input');
-        const calcPreview = document.getElementById('calc-preview');
-
-        decimalInput.addEventListener('input', () => {
-          let raw = decimalInput.value.replace(/[^0-9]/g, '');
-          decimalInput.value = '.' + raw;
-          
-          const num = parseFloat(decimalInput.value);
-          if (!isNaN(num) && num > 0 && num < 1) {
-            const addedBoxes = Math.round(num * perPallet);
-            calcPreview.innerText = `= ${num} Pallet (${addedBoxes} Boxes)`;
-          } else {
-            calcPreview.innerText = '';
-          }
-        });
-
-        modalConfirmBtn.className = "success";
-        modalConfirmBtn.innerText = "Confirm Partial Pallet";
-        modalConfirmBtn.onclick = () => {
-          const num = parseFloat(decimalInput.value);
-
-          if (!isNaN(num) && num > 0 && num < 1) {
-            const addedBoxes = Math.round(num * perPallet);
-            trackingData[sku].pallets += num;
-            logEntry(sku, `Added +${num} Partial Pallet (${addedBoxes} boxes)`);
-            updateRowTotals(sku);
-            closeModal();
-          } else {
-            alert('Please enter a valid decimal fraction (e.g., .5).');
-          }
-        };
-
-        modalOverlay.classList.remove('hidden');
-        setTimeout(() => {
-          decimalInput.focus();
-          decimalInput.setSelectionRange(1, 1);
-        }, 100);
-      }
-
-      function closeModal() {
-        modalOverlay.classList.add('hidden');
-      }
-
-      modalCancelBtn.addEventListener('click', closeModal);
-
-      // RECALCULATIONS & PERCENTAGES
-      function updateRowTotals(sku) {
-        const data = trackingData[sku];
-        const perPallet = data.ti * data.hi;
-        
-        const totalBoxes = Math.round((data.pallets * perPallet) + data.partialBoxes);
-        const displayPallets = (data.pallets % 1 === 0) ? data.pallets : data.pallets.toFixed(2);
-
-        document.getElementById(`count-pallet-${sku}`).innerText = displayPallets;
-        document.getElementById(`total-boxes-${sku}`).innerText = totalBoxes;
-
-        recalculateOverallTotals();
-      }
-
-      function recalculateOverallTotals() {
-        let grandBoxes = 0;
-        let grandPallets = 0;
-
-        skus.forEach(sku => {
-          const data = trackingData[sku];
-          const perPallet = data.ti * data.hi;
-          const boxes = Math.round((data.pallets * perPallet) + data.partialBoxes);
-          
-          grandBoxes += boxes;
-          grandPallets += data.pallets;
-          
-          if (perPallet > 0 && data.partialBoxes > 0) {
-            grandPallets += (data.partialBoxes / perPallet);
-          }
-        });
-
-        const displayPalletTotal = (grandPallets % 1 === 0) ? grandPallets : grandPallets.toFixed(2);
-
-        grandTotalBoxes.innerText = `${grandBoxes} / ${manifestBoxes}`;
-        grandTotalPallets.innerText = `${displayPalletTotal} / ${manifestPallets}`;
-
-        const boxPercentage = manifestBoxes > 0 ? ((grandBoxes / manifestBoxes) * 100).toFixed(1) : '0';
-        const palletPercentage = manifestPallets > 0 ? ((grandPallets / manifestPallets) * 100).toFixed(1) : '0';
-
-        boxPct.innerText = `${boxPercentage}% Complete`;
-        palletPct.innerText = `${palletPercentage}% Complete`;
-      }
-
-      // Add Boxes Input (Submits and blurs on Enter)
-      trackingSection.addEventListener('keydown', (e) => {
-        if (e.target.classList.contains('loose-input') && e.key === 'Enter') {
-          e.preventDefault();
-          e.target.blur();
-        }
-      });
-
-      trackingSection.addEventListener('change', (e) => {
-        if (e.target.classList.contains('loose-input')) {
-          const sku = e.target.getAttribute('data-sku');
-          const val = parseInt(e.target.value, 10);
-          const newBoxes = !isNaN(val) && val >= 0 ? val : 0;
-          
-          if (newBoxes !== trackingData[sku].partialBoxes) {
-            trackingData[sku].partialBoxes = newBoxes;
-            logEntry(sku, `Updated loose box count to ${newBoxes}`);
-            updateRowTotals(sku);
-          }
-        }
-      });
-
-      // Smart Ti/Hi input handler
-      trackingSection.addEventListener('keydown', (e) => {
-        if (e.target.classList.contains('tihi-input')) {
-          const el = e.target;
-          let val = el.value;
-
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (!val.includes('/') && val.length > 0) {
-              el.value = val + '/';
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-            } else {
-              el.blur();
-            }
-            return;
-          }
-
-          if (e.key === ' ' || e.key === '/') {
-            e.preventDefault();
-            if (!val.includes('/') && val.length > 0) {
-              el.value = val + '/';
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          }
-
-          if (e.key === 'Backspace') {
-            const pos = el.selectionStart;
-            if (pos > 0 && val[pos - 1] === '/') {
-              e.preventDefault();
-              el.value = val.slice(0, pos - 1) + val.slice(pos);
-              el.setSelectionRange(pos - 1, pos - 1);
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          }
-        }
-      });
-
-      trackingSection.addEventListener('input', (e) => {
-        if (e.target.classList.contains('tihi-input')) {
-          const el = e.target;
-          let val = el.value.replace(/[^0-9/]/g, '');
-          const sku = el.getAttribute('data-sku');
-
-          let parts = val.split('/');
-          let ti = parts[0] || '';
-          let hi = parts.length > 1 ? parts.slice(1).join('') : null;
-
-          if (hi === null && ti.length > 2) {
-            hi = ti.slice(2, 4);
-            ti = ti.slice(0, 2);
-          } else {
-            if (ti.length > 2) ti = ti.slice(0, 2);
-            if (hi !== null && hi.length > 2) hi = hi.slice(0, 2);
-          }
-
-          el.value = hi !== null ? `${ti}/${hi}` : ti;
-
-          const match = el.value.match(/^(\d{1,2})\/(\d{1,2})$/);
-          if (match) {
-            const newTi = parseInt(match[1], 10);
-            const newHi = parseInt(match[2], 10);
-
-            if (newTi !== trackingData[sku].ti || newHi !== trackingData[sku].hi) {
-              trackingData[sku].ti = newTi;
-              trackingData[sku].hi = newHi;
-              logEntry(sku, `Set Ti/Hi pattern to ${newTi}/${newHi}`);
-              updateRowTotals(sku);
-            }
-          }
-        }
-      });
     });
-  </script>
- </body>
+  }
+  paint();
+  box.append(tbl);
+
+  const pieces = done.reduce((a,d)=>a+(d.pieces||0),0);
+  const big=el("div","bigstat");
+  big.append(el("div","n mono", pieces.toLocaleString()));
+  big.append(el("div","l","Completed piece count"));
+  box.append(big);
+
+  openSheet("Shift stats", [{ label:"Close", fn:()=>{} }], box);
+}
+
+/* ---------------- summary ---------------- */
+function summaryOf(s){
+  const finished = s.doors.filter(d=>d.done);
+  const rolled   = s.doors.filter(d=>d.startedAt && !d.done);
+  const pieces   = finished.reduce((a,d)=>a+(d.pieces||0),0);
+  return { finished, rolled, pieces };
+}
+const leftTag = d => (100 - (d.progress||0)) + "% left";
+
+function openSummary(s, readonly){
+  const prev = shift;
+  shift = s;
+  openDetail = null;
+  const { finished, rolled, pieces } = summaryOf(s);
+  $("#sumTitle").textContent = dayLabel(s.startedAt);
+
+  const body=$("#sumBody");
+  function paint(){
+    body.innerHTML="";
+    const tbl=el("div","tbl");
+    const rows=[
+      { key:"crew", k:"Lumpers", v:s.people.length, cls:"", detail:()=> s.people.map(p=>({ main:p.name })) },
+      { key:"fin",  k:"Finished", v:finished.length, cls:"g", detail:()=> finished.map(d=>({
+          main:(d.trailer||"no ID")+" \u00b7 door "+d.door,
+          sub: d.worked.length ? namesIn(d.worked) : "no crew logged" })) },
+      { key:"roll", k:"Rollovers", v:rolled.length, cls:"a", detail:()=> rolled.map(d=>({
+          main:(d.trailer||"no ID")+" \u00b7 door "+d.door+" \u00b7 "+leftTag(d),
+          sub: d.worked.length ? namesIn(d.worked) : "no crew logged" })) }
+    ];
+    rows.forEach(r=>{
+      const b=el("button","trow tap "+(r.cls||""));
+      b.append(el("div","k",r.k));
+      b.append(el("div","v",String(r.v)));
+      b.onclick = ()=>{ openDetail = openDetail===r.key ? null : r.key; paint(); };
+      tbl.append(b);
+      if (openDetail===r.key){
+        const dd=el("div","tdetail"), list=r.detail();
+        if (!list.length) dd.append(el("div","r","Nothing here yet."));
+        list.forEach(x=>{
+          const row=el("div","r"); row.append(el("div",null,x.main));
+          if (x.sub) row.append(el("div","who",x.sub));
+          dd.append(row);
+        });
+        tbl.append(dd);
+      }
+    });
+    body.append(tbl);
+
+    const big=el("div","bigstat");
+    big.append(el("div","n mono", pieces.toLocaleString()));
+    big.append(el("div","l","Completed container piece count"));
+    body.append(big);
+  }
+  paint();
+
+  const foot=$("#sumFoot"); foot.innerHTML="";
+  if (readonly && s.status==="finished"){
+    const b=el("button","primary","Continue this shift");
+    b.onclick = ()=>{ s.status="active"; s.endedAt=null; shift=s; log("Shift reopened"); save(); openBoard(); };
+    foot.append(b);
+  } else if (!readonly){
+    const b=el("button","primary","End shift");
+    b.onclick = ()=>{
+      s.status="finished"; s.endedAt=Date.now(); log("Shift finished"); save();
+      shift=null; Store.set(K_ACTIVE,null);
+      setupRows=[]; renderSetup(); show("scSetup");
+    };
+    foot.append(b);
+  }
+
+  $("#sumBack").onclick = ()=>{
+    if (readonly){ shift = prev; if (shift) openBoard(); else show("scSetup"); }
+    else openBoard();
+  };
+  $("#sumPdf").onclick = ()=> savePdf(s);
+  show("scSummary");
+}
+
+/* ---------------- pdf ---------------- */
+/* jsPDF builds a real file and downloads it, which is what works on Firefox for
+   Android — window.print() is a no-op there. Loaded on demand from the CDN. */
+function loadJsPDF(){
+  if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+  if (loadJsPDF._p) return loadJsPDF._p;
+  loadJsPDF._p = new Promise((res,rej)=>{
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    sc.onload = ()=> res();
+    sc.onerror = ()=> rej(new Error("cdn"));
+    document.head.appendChild(sc);
+  });
+  return loadJsPDF._p;
+}
+
+async function savePdf(s){
+  toast("Building PDF\u2026");
+  try { await loadJsPDF(); }
+  catch(e){
+    toast("Couldn't load the PDF tool. Opening print instead.");
+    return printFallback(s);
+  }
+
+  const prev = shift; shift = s;
+  try {
+  const { finished, rolled, pieces } = summaryOf(s);
+
+  const doc = new window.jspdf.jsPDF({ unit:"pt", format:"a4" });
+  const M = 42, W = 595 - M*2;
+  let y = M;
+
+  const page = h => { if (y + h > 800){ doc.addPage(); y = M; } };
+  const rule = ()=>{ doc.setDrawColor(170); doc.setLineWidth(.6); doc.line(M, y, M+W, y); y += 12; };
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(17);
+  doc.text("Shift summary", M, y); y += 19;
+  doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(90);
+  doc.text(dayLabel(s.startedAt) + "  \u00b7  " + clock(s.startedAt) + (s.endedAt ? " \u2013 " + clock(s.endedAt) : ""), M, y);
+  y += 20; doc.setTextColor(0);
+
+  /* totals strip */
+  const totals = [
+    ["Lumpers", String(s.people.length)],
+    ["Finished", String(finished.length)],
+    ["Rollovers", String(rolled.length)],
+    ["Pieces", pieces.toLocaleString()]
+  ];
+  const cw = W/4;
+  totals.forEach((t,i)=>{
+    const x = M + cw*i;
+    doc.setFontSize(9); doc.setTextColor(110); doc.text(t[0].toUpperCase(), x, y);
+    doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(0);
+    doc.text(t[1], x, y+17);
+    doc.setFont("helvetica","normal");
+  });
+  y += 30; rule();
+
+  const heading = txt => {
+    page(40);
+    doc.setFont("helvetica","bold"); doc.setFontSize(11);
+    doc.text(txt.toUpperCase(), M, y); y += 6;
+    doc.setDrawColor(0); doc.setLineWidth(.8); doc.line(M, y, M+W, y);
+    y += 14; doc.setFont("helvetica","normal");
+  };
+
+  const table = (cols, rows) => {
+    doc.setFontSize(8.5); doc.setTextColor(110);
+    cols.forEach(c=> doc.text(c.h.toUpperCase(), M + c.x, y));
+    y += 11; doc.setTextColor(0); doc.setFontSize(10);
+    if (!rows.length){ doc.setTextColor(130); doc.text("None", M, y); doc.setTextColor(0); y += 16; return; }
+    rows.forEach(r=>{
+      const wrapped = cols.map(c=> doc.splitTextToSize(String(r[c.k] ?? "\u2014"), c.w));
+      const lines = Math.max(...wrapped.map(w=>w.length));
+      page(lines*12 + 10);
+      cols.forEach((c,i)=> doc.text(wrapped[i], M + c.x, y));
+      y += lines*12 + 5;
+      doc.setDrawColor(225); doc.setLineWidth(.5); doc.line(M, y-3, M+W, y-3);
+      y += 4;
+    });
+    y += 8;
+  };
+
+  heading("Finished");
+  table(
+    [{h:"Trailer",k:"trailer",x:0,w:92},{h:"Door",k:"door",x:98,w:38},
+     {h:"Pieces",k:"pieces",x:142,w:52},{h:"Time",k:"time",x:200,w:62},
+     {h:"Crew",k:"crew",x:268,w:W-268}],
+    finished.map(d=>({
+      trailer:d.trailer||"no ID", door:d.door,
+      pieces:d.pieces ? d.pieces.toLocaleString() : "\u2014",
+      time:dur(elapsedOf(d)),
+      crew:d.worked.length ? namesIn(d.worked) : "\u2014"
+    }))
+  );
+
+  heading("Rollovers");
+  table(
+    [{h:"Trailer",k:"trailer",x:0,w:92},{h:"Door",k:"door",x:98,w:38},
+     {h:"Remaining",k:"left",x:142,w:74},{h:"Crew",k:"crew",x:222,w:W-222}],
+    rolled.map(d=>({
+      trailer:d.trailer||"no ID", door:d.door, left:leftTag(d),
+      crew:d.worked.length ? namesIn(d.worked) : "\u2014"
+    }))
+  );
+
+  heading("Lumpers");
+  const crewLines = doc.splitTextToSize(s.people.map(p=>p.name).join(", ") || "None", W);
+  page(crewLines.length*12 + 10);
+  doc.setFontSize(10); doc.text(crewLines, M, y); y += crewLines.length*12 + 10;
+
+  const noted = s.doors.filter(d=>d.note);
+  if (noted.length){
+    heading("Door notes");
+    noted.forEach(d=>{
+      const head = "Door " + d.door + (d.trailer ? "  \u00b7  " + d.trailer : "");
+      const lines = doc.splitTextToSize(d.note, W);
+      page(lines.length*12 + 26);
+      doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(head, M, y); y += 13;
+      doc.setFont("helvetica","normal"); doc.text(lines, M, y); y += lines.length*12 + 10;
+    });
+  }
+
+  const stamp = new Date(s.startedAt);
+  const name = "shift-" + stamp.getFullYear() + "-" + pad2(stamp.getMonth()+1) + "-" + pad2(stamp.getDate()) + ".pdf";
+  deliver(doc, name);
+  } catch(err){
+    console.error(err);
+    toast("Something went wrong building the PDF.");
+  } finally {
+    shift = prev;
+  }
+}
+
+/* Download the file ourselves so the browser writes it to the device.
+   jsPDF's own save() works in most places, but doing it explicitly means
+   we control the filename and can fall back if the download is blocked. */
+function deliver(doc, name){
+  let url = null;
+  try {
+    const blob = doc.output("blob");
+    url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>{ if (url) URL.revokeObjectURL(url); }, 30000);
+    toast("Saved " + name);
+    return;
+  } catch(e){
+    if (url) { try { URL.revokeObjectURL(url); } catch(_){} }
+  }
+  try { doc.save(name); toast("Saved " + name); return; } catch(e){}
+  try {
+    const w = window.open(doc.output("bloburl"), "_blank");
+    if (w) { toast("Opened the PDF \u2014 use your browser to save it."); return; }
+  } catch(e){}
+  toast("Couldn't save the PDF on this browser.");
+}
+
+/* only used if the CDN is unreachable */
+function printFallback(s){
+  const prev = shift; shift = s;
+  const { finished, rolled, pieces } = summaryOf(s);
+  const esc = t => String(t).replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+  const finRows = finished.map(d=>
+    "<tr><td>"+esc(d.trailer||"no ID")+"</td><td>"+esc(d.door)+"</td><td>"+(d.pieces? d.pieces.toLocaleString():"\u2014")+
+    "</td><td>"+dur(elapsedOf(d))+"</td><td>"+esc(d.worked.length?namesIn(d.worked):"\u2014")+"</td></tr>").join("");
+  const rollRows = rolled.map(d=>
+    "<tr><td>"+esc(d.trailer||"no ID")+"</td><td>"+esc(d.door)+"</td><td>"+leftTag(d)+
+    "</td><td>"+esc(d.worked.length?namesIn(d.worked):"\u2014")+"</td></tr>").join("");
+  $("#printArea").innerHTML =
+    "<h1>Shift summary \u2014 "+dayLabel(s.startedAt)+"</h1>"+
+    "<div class='sub'>"+s.people.length+" lumpers \u00b7 "+finished.length+" finished \u00b7 "+
+      rolled.length+" rolled over \u00b7 "+pieces.toLocaleString()+" pieces</div>"+
+    "<h2>Finished</h2><table><tr><th>Trailer</th><th>Door</th><th>Pieces</th><th>Time</th><th>Crew</th></tr>"+
+      (finRows||"<tr><td colspan=5>None</td></tr>")+"</table>"+
+    "<h2>Rollovers</h2><table><tr><th>Trailer</th><th>Door</th><th>Remaining</th><th>Crew</th></tr>"+
+      (rollRows||"<tr><td colspan=4>None</td></tr>")+"</table>";
+  shift = prev;
+  setTimeout(()=>window.print(), 60);
+}
+
+/* ---------------- drawer ---------------- */
+function openDrawer(){
+  /* setup screen has no shift yet, so stats and finish have nothing to act on */
+  const live = !!shift;
+  $("#mStats").style.display  = live ? "" : "none";
+  $("#mFinish").style.display = live ? "" : "none";
+  $("#drawer").classList.add("on"); $("#scrim").classList.add("on");
+}
+function closeDrawer(){ $("#drawer").classList.remove("on"); if(!$("#sheet").classList.contains("on")) $("#scrim").classList.remove("on"); }
+$("#setupMenu").onclick = openDrawer;
+$("#boardMenu").onclick = openDrawer;
+
+$("#mStats").onclick  = ()=>{ closeDrawer(); setTimeout(statsSheet, 200); };
+$("#mSaved").onclick  = ()=>{ closeDrawer(); setTimeout(savedSheet, 200); };
+$("#mFinish").onclick = ()=>{
+  closeDrawer();
+  if (!shift){ toast("No shift open yet."); return; }
+  setTimeout(()=> openSummary(shift, false), 200);
+};
+
+function savedSheet(){
+  if (!shifts.length){ openSheet("Saved shifts", [{label:"Close", fn:()=>{}}]); return; }
+  const box=el("div");
+  shifts.forEach(s=>{
+    const prev=shift; shift=s;
+    const { finished, rolled, pieces } = summaryOf(s);
+    shift=prev;
+    const c=el("button","shiftcard");
+    c.append(el("div","d", dayLabel(s.startedAt)+(s.status==="active" ? "  \u00b7 open" : "")));
+    c.append(el("div","m", finished.length+" finished \u00b7 "+rolled.length+" rolled over \u00b7 "+
+      pieces.toLocaleString()+" pc \u00b7 "+s.people.length+" lumpers"));
+    c.onclick = ()=>{
+      closeSheet();
+      if (s.status==="active"){ shift=s; save(); openBoard(); }
+      else openSummary(s, true);
+    };
+    box.append(c);
+  });
+  openSheet("Saved shifts", [{label:"Close", fn:()=>{}}], box);
+}
+
+/* theme */
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  $("#themeToggle").classList.toggle("on", t==="light");
+  Store.set(K_THEME, t);
+}
+$("#themeToggle").onclick = ()=> setTheme(document.documentElement.dataset.theme==="light" ? "dark" : "light");
+
+/* ---------------- boot ---------------- */
+(async function(){
+  setTheme((await Store.get(K_THEME))==="light" ? "light" : "dark");
+  shifts = ((await Store.get(K_SHIFTS)) || []).map(migrate);
+  const activeId = await Store.get(K_ACTIVE);
+  const found = activeId && shifts.find(s=>s.id===activeId && s.status==="active");
+  renderSetup();
+  if (found){ shift=found; openBoard(); } else show("scSetup");
+})();
+</script>
+</body>
 </html>
