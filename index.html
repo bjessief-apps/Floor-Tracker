@@ -541,7 +541,7 @@ const Store = {
     try { localStorage.setItem(k, str); } catch(e){}
   }
 };
-const K_SHIFTS="lpt.shifts", K_ACTIVE="lpt.active", K_THEME="lpt.theme";
+const K_SHIFTS="lpt.shifts", K_ACTIVE="lpt.active", K_THEME="lpt.theme", K_SETUP="lpt.setup";
 
 /* ---------- state ---------- */
 let shifts = [], shift = null;
@@ -620,6 +620,16 @@ function save(){
     Store.set(K_ACTIVE, shift && shift.status==="active" ? shift.id : null);
   }, 120);
 }
+function flushSave(){
+  if (!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  try { localStorage.setItem(K_SHIFTS, JSON.stringify(shifts)); } catch(e){}
+  try { localStorage.setItem(K_ACTIVE, JSON.stringify(shift && shift.status==="active" ? shift.id : null)); } catch(e){}
+}
+function saveSetup(){
+  try { localStorage.setItem(K_SETUP, JSON.stringify(setupRows)); } catch(e){}
+}
+window.addEventListener("beforeunload", flushSave);
 function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id)); }
 
 /* ---------------- setup ---------------- */
@@ -633,7 +643,7 @@ function renderSetup(){
       row.append(el("div","dt"+(r.trailer?"":" none"), r.trailer || "no trailer ID"));
       row.append(el("div","dp", r.pieces ? Number(r.pieces).toLocaleString()+" pc" : ""));
       const x=el("button","x","\u00d7"); x.setAttribute("aria-label","Remove door "+r.door);
-      x.onclick=()=>{ setupRows.splice(i,1); renderSetup(); };
+      x.onclick=()=>{ setupRows.splice(i,1); saveSetup(); renderSetup(); };
       row.append(x);
       list.append(row);
     });
@@ -648,7 +658,7 @@ function addSetupRow(){
   if (setupRows.some(r=>r.door===door)){ toast("Door "+door+" is already on the list."); dEl.focus(); return; }
   setupRows.push({ door, trailer:tEl.value.trim(), pieces:Number(pEl.value)||0 });
   dEl.value=""; tEl.value=""; pEl.value="";
-  renderSetup();
+  saveSetup(); renderSetup();
   dEl.focus();
 }
 
@@ -661,6 +671,7 @@ $("#ePc").onkeydown   = e => { if (e.key==="Enter"){ e.preventDefault(); addSetu
 $("#startShift").onclick = ()=>{
   if (!setupRows.length) return;
   shift = newShift(setupRows);
+  setupRows = []; saveSetup();
   log("Shift started");
   shift.doors.forEach(d=> log("Door "+d.door+" opened"+(d.trailer? " \u00b7 "+d.trailer : "")));
   save(); openBoard();
@@ -1213,7 +1224,7 @@ function openSummary(s, readonly){
     b.onclick = ()=>{
       s.status="finished"; s.endedAt=Date.now(); log("Shift finished"); save();
       shift=null; Store.set(K_ACTIVE,null);
-      setupRows=[]; renderSetup(); show("scSetup");
+      setupRows=[]; saveSetup(); renderSetup(); show("scSetup");
     };
     foot.append(b);
   }
@@ -1468,6 +1479,7 @@ $("#themeToggle").onclick = ()=> setTheme(document.documentElement.dataset.theme
   shifts = ((await Store.get(K_SHIFTS)) || []).map(migrate);
   const activeId = await Store.get(K_ACTIVE);
   const found = activeId && shifts.find(s=>s.id===activeId && s.status==="active");
+  try { const saved = localStorage.getItem(K_SETUP); if (saved) setupRows = JSON.parse(saved) || []; } catch(e){}
   renderSetup();
   if (found){ shift=found; openBoard(); } else show("scSetup");
 })();
