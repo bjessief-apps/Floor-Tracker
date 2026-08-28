@@ -1,4 +1,3 @@
-Floor Tracker
 Floor Tracker is a browser-based app for running a warehouse unloading shift from a phone.
 Set up your doors at the start of a shift, add your crew, and move workers between trailers as the day goes. The board shows which doors are being worked, which are sitting empty, and how far along each trailer is. At the end of the shift it produces a summary and a PDF.
 Features
