@@ -1,6 +1,19 @@
-https://bjessief-apps.github.io/Floor-Tracker/
-
 # Floor Tracker
+
+**Try it:** https://bjessief-apps.github.io/Floor-Tracker/ (works best on a phone)
+
+I'm a lead on a warehouse unloading crew. During a shift I've got a bunch of doors open, people moving between trailers, and somebody always asking who's where and how close a trailer is to done. I built Floor Tracker so I could run all of that from my phone instead of keeping it in my head.
+
+<table>
+  <tr>
+    <td align="center"><img src="screenshots/1-set-doors.png" width="220" alt="Set up the doors"><br><sub>Set up the doors</sub></td>
+    <td align="center"><img src="screenshots/2-floor-board.png" width="220" alt="Crew on the board, live log"><br><sub>Crew on the board, live log</sub></td>
+  </tr>
+</table>
+
+<sub>Screenshots use made-up sample names and numbers.</sub>
+
+## The details
 
 Floor Tracker is a browser-based app for running a warehouse unloading shift from a phone. Set up your doors at the start of a shift, add your crew, and move workers between trailers as the day goes. The board shows which doors are being worked, which are sitting empty, and how far along each trailer is. At the end of the shift it produces a summary and a PDF.
 
